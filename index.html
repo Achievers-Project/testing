@@ -1,0 +1,483 @@
+<!-- SECTION 1: HTML & Dashboard -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE RBI GAME</title>
+<style>
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#121212; color:#eee; transition: background 0.3s, color 0.3s; }
+.container { max-width:900px; margin:20px auto; padding:20px; background:#1f1f1f; border-radius:12px; box-shadow:0 0 20px rgba(0,0,0,0.5); }
+h1 { text-align:center; margin-bottom:20px; }
+  h2 { text-align:center; margin-bottom:10px; }
+.stats { display:flex; justify-content:space-around; margin-bottom:20px; flex-wrap:wrap; }
+.stat { font-size:16px; font-weight:bold; margin:5px 0; }
+.eventBox { background:#2b2b2b; padding:15px; border-radius:8px; margin-bottom:20px; min-height:80px; }
+#buttonsArea button { padding:10px 15px; margin:5px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
+#buttonsArea button:hover { opacity:0.9; }
+#darkToggleContainer { text-align:right; margin-bottom:10px; }
+#timer { font-weight:bold; margin-bottom:10px; font-size:16px; text-align:center; }
+.graphContainer { margin:20px 0; }
+.graphBar { height:20px; margin:5px 0; border-radius:6px; transition:width 0.5s; }
+.economyBar { background:#6a5acd; }
+.bankBar { background:#35d46a; }
+.publicBar { background:#ff5c5c; }
+.inflationBar { background:#ffbf00; }
+.liquidityBar { background:#00bfff; }
+footer { margin-top:20px; text-align:center; font-size:14px; color:#aaa; display:flex; justify-content:space-between; align-items:center; padding:0 10px; }
+#hariRapContainer { display:none; margin-top:10px; padding:12px; background:#2f0000; border-radius:8px; color:#fff; white-space:pre-line; line-height:1.5; }
+#footerDontBtn { padding:6px 12px; background:#ff5c5c; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
+#footerDontBtn:hover { background:#e04444; }
+</style>
+</head>
+<body>
+ <h2> <a href="https://potatotomato.netlify.app/">
+  <img src = "https://images.seeklogo.com/logo-png/16/1/rbi-logo-png_seeklogo-168562.png" alt="" width="150" height="150">
+</a>
+ </h2>
+<div id="darkToggleContainer">
+  <label><input type="checkbox" id="darkToggle"> Toggle Theme</label>
+</div>
+<div class="container">
+<h1>RBI Game</h1>
+<div class="stats">
+  <div class="stat">Economy: <span id="economy">50</span></div>
+  <div class="stat">Bank Health: <span id="bank">50</span></div>
+  <div class="stat">Public Happiness: <span id="public">50</span></div>
+  <div class="stat">Inflation: <span id="inflation">5%</span></div>
+  <div class="stat">Liquidity: <span id="liquidity">50</span></div>
+</div>
+<div id="graphArea" class="graphContainer"></div>
+<div id="timer">Time Left: <span id="timeNum">20</span>s</div>
+<div id="eventArea" class="eventBox"></div>
+<div id="buttonsArea"></div>
+<div id="messageArea"></div>
+<footer>
+  <span>Made by Syed  / RBI©2025</span>
+  <button id="footerDontBtn">Don't click</button>
+</footer>
+<div id="hariRapContainer">
+Yo Hari, always missing in the grind,  
+We code all night, you lag behind.  
+Ideas flowing, you just chill,  
+While we debug, you spill.  
+Step up now, face the heat,  
+Or watch your defeat repeat.  
+No contribution? That’s your beat!  
+</div>
+
+<!-- SECTION 2: Full Game Logic with Month Events and Hari Diss -->
+<script>
+// Dark theme toggle
+const darkToggle = document.getElementById("darkToggle");
+darkToggle.addEventListener("change", ()=>{
+  document.body.classList.toggle("dark", darkToggle.checked);
+});
+
+// Stats initialization
+let economy=50, bank=50, publicHappiness=50, inflation=0, liquidity=20;
+let month=1, maxMonth=12;
+let timer, timeLeft=20;
+
+// Update graph bars
+function updateGraph(){
+  const graphArea = document.getElementById("graphArea");
+  graphArea.innerHTML = `
+    <div class="graphBar economyBar" style="width:${economy}%;">Economy: ${economy}</div>
+    <div class="graphBar bankBar" style="width:${bank}%;">Bank Health: ${bank}</div>
+    <div class="graphBar publicBar" style="width:${publicHappiness}%;">Public Happiness: ${publicHappiness}</div>
+    <div class="graphBar inflationBar" style="width:${inflation*5}%;">Inflation: ${inflation}%</div>
+    <div class="graphBar liquidityBar" style="width:${liquidity}%;">Liquidity: ${liquidity}</div>
+  `;
+}
+
+// Update stats display
+function updateStats(){
+  document.getElementById("economy").textContent=economy;
+  document.getElementById("bank").textContent=bank;
+  document.getElementById("public").textContent=publicHappiness;
+  document.getElementById("inflation").textContent=inflation+"%";
+  document.getElementById("liquidity").textContent=liquidity;
+  updateGraph();
+}
+
+// Month-specific events with tricky options
+const events=[
+  {text:" Inflation spikes unexpectedly!", options:[
+    {text:"Raise interest rates sharply", economy:-5, bank:+5, public:-7, inflation:-3},
+    {text:"Inject liquidity slowly", economy:+4, bank:-2, public:+2, inflation:+1},
+    {text:"Do nothing", economy:-5, bank:0, public:-5, inflation:+5}
+  ]},
+  {text:"A major bank hides fraud reports!", options:[
+    {text:"Launch surprise audit", economy:-3, bank:+6, public:+1},
+    {text:"Cover up quietly for govt ", economy:0, bank:-2, public:-6},
+    {text:"Fine and restructure bank", economy:-1, bank:+4, public:-1}
+  ]},
+  {text:" Public demands faster digital payments!", options:[
+    {text:"Invest heavily in digital infrastructure", economy:+5, bank:+3, public:+6, liquidity:+4},
+    {text:"Ignore demands", economy:0, bank:0, public:-8},
+    {text:"Subsidize banks to improve services", economy:-3, bank:+4, public:+3}
+  ]},
+  {text:" Sudden economic slowdown!", options:[
+    {text:"Reduce interest rates", economy:+6, bank:-2, public:+3, inflation:+2},
+    {text:"Send military for investigation", economy:-4, bank:0, public:-6, inflation:-1},
+    {text:"Launch stimulus package", economy:+8, bank:-3, public:+5, liquidity:-5}
+  ]},
+  {text:" Liquidity crunch reported by banks!", options:[
+    {text:"Inject emergency funds", liquidity:+12, economy:+3, bank:+5, public:+2},
+    {text:"Invest on Video games", liquidity:-5, economy:-3, bank:-3, public:-3},
+    {text:"Borrow from foreign banks", liquidity:+6, bank:+2, economy:0, public:0}
+  ]},
+  {text:" RBI mobile app crashes repeatedly!", options:[
+    {text:"Fix app immediately", public:+8, liquidity:-3},
+    {text:"Delay fix cuz of HIGH cost", public:-7, economy:0},
+    {text:"Ignore complaints", public:-12}
+  ]},
+  {text:" Foreign investment surges unexpectedly!", options:[
+    {text:"Encourage further investment", economy:+6, bank:+2, public:+2},
+    {text:"Restrict foreign funds for Education", economy:-3, bank:-2, public:-1},
+    {text:"Monitor and report only", economy:+1, bank:+1, public:0}
+  ]},
+  {text:" RBI faces cybersecurity attack!", options:[
+    {text:"Invest heavily in security", liquidity:-5, bank:+5, public:+3},
+    {text:"Ignore minor attacks", bank:+5, public:-3},
+    {text:"Call foriegn support", liquidity:-3, bank:+3, economy:-1}
+  ]},
+  {text:" Public protests over rising inflation!", options:[
+    {text:"Cut interest rates", economy:+5, public:+3, inflation:+2},
+    {text:"Introduce subsidies", economy:-4, public:+5, liquidity:-2},
+    {text:"Ignore protests ", public:-8, economy:-2}
+  ]},
+  {text:" Banks report sudden fraudulent transactions!", options:[
+    {text:"Audit banks aggressively", bank:+6, economy:-3, public:+2},
+    {text:"Cover quietly", bank:-10, public:-5, economy:0},
+    {text:"Impose fines", bank:+3, economy:-1, public:-2}
+  ]},
+  {text:" Sudden economic boom in export sector!", options:[
+    {text:"Support exports with loans", economy:+6, bank:-2, liquidity:-3},
+    {text:"Tax exports heavily", economy:-4, bank:+1, public:-2},
+    {text:"Invest on stocks", economy:+2, bank:0, public:0}
+  ]},
+  {text:" Year-end liquidity planning!", options:[
+    {text:"Redistribute funds to needy banks", liquidity:+5, public:+3, bank:+2},
+    {text:"Invest on INFRASTRUCTURE", liquidity:-5, bank:+2, public:-1},
+    {text:"Adjust interest rates cautiously", inflation:+1, economy:+1, bank:+1}
+  ]}
+];
+
+// Timer functions
+function startTimer(){
+  timeLeft=30;
+  document.getElementById("timeNum").textContent=timeLeft;
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    timeLeft--;
+    document.getElementById("timeNum").textContent=timeLeft;
+    if(timeLeft<=0){
+      clearInterval(timer);
+      document.getElementById("messageArea").textContent="TIMES UP! DEFAULT ACTION APPLIED.";
+      applyOption(events[Math.min(month-1,events.length-1)].options[0]);
+    }
+  },1000);
+}
+
+// Apply decision
+function applyOption(opt){
+  clearInterval(timer);
+  economy=Math.min(Math.max(economy+(opt.economy||0),0),100);
+  bank=Math.min(Math.max(bank+(opt.bank||0),0),100);
+  publicHappiness=Math.min(Math.max(publicHappiness+(opt.public||0),0),100);
+  inflation=Math.min(Math.max(inflation+(opt.inflation||0),0),20);
+  liquidity=Math.min(Math.max(liquidity+(opt.liquidity||0),0),100);
+  if(opt.message) document.getElementById("messageArea").textContent=opt.message;
+  updateStats();
+  setTimeout(nextEvent,800);
+}
+
+// Next event
+function nextEvent(){
+  if(economy<=0 || bank<=0 || publicHappiness<=0 || month>maxMonth){
+    gameOver();
+    return;
+  }
+  const evt = events[month-1];
+  document.getElementById("eventArea").textContent=`Month ${month}: ${evt.text}`;
+  const btnArea=document.getElementById("buttonsArea");
+  btnArea.innerHTML="";
+  evt.options.forEach(opt=>{
+    const btn=document.createElement("button");
+    btn.textContent=opt.text;
+    btn.onclick=()=>{ applyOption(opt); };
+    btnArea.appendChild(btn);
+  });
+  month++;
+  startTimer();
+}
+
+// Game over
+function gameOver(){
+  document.getElementById("eventArea").textContent="Well played";
+  document.getElementById("buttonsArea").innerHTML=`<button onclick="restartGame()">Restart Game</button>`;
+  document.getElementById("timer").textContent="";
+  document.getElementById("messageArea").textContent="Check stats and try again!";
+  if(economy>70 && bank>50 && publicHappiness>50){
+    document.getElementById("messageArea").textContent="Legendary Governor! You crushed it";
+  }
+}
+
+// Restart game
+function restartGame(){
+  economy=50; bank=50; publicHappiness=50; inflation=5; liquidity=50; month=1;
+  document.getElementById("messageArea").textContent="";
+  updateStats();
+  nextEvent();
+}
+
+// HARI DISS TRACK FOOTER
+const dontBtn = document.getElementById("footerDontBtn");
+const hariRap = document.getElementById("hariRapContainer");
+let rapVisible=false;
+hariRap.style.transition = "max-height 0.5s ease, opacity 0.5s ease";
+hariRap.style.maxHeight = "0px";
+hariRap.style.opacity = 0;
+hariRap.style.overflow = "hidden";
+dontBtn.addEventListener("click",()=>{
+  rapVisible=!rapVisible;
+  if(rapVisible){
+    hariRap.style.display="block";
+    hariRap.style.maxHeight="300px";
+    hariRap.style.opacity=1;
+    dontBtn.textContent="Close rap";
+  } else {
+    hariRap.style.maxHeight="0px";
+    hariRap.style.opacity=0;
+    setTimeout(()=>{ hariRap.style.display="none"; },500);
+    dontBtn.textContent="Don't click";
+  }
+});
+
+// Initialize
+updateStats();
+nextEvent();
+<!-- SECTION 3: Dissing Hari / Interactive Decisions -->
+<script>
+// Mini-game flags
+let currentMiniGame = null;
+
+// Event with mini-games
+const miniEvents=[
+  {text:"Allocate liquidity to banks!", type:"dragDrop", totalLiquidity:10},
+  {text:"Set interest rate!", type:"slider", min:0, max:10},
+  {text:"Fund economic project!", type:"buttons", options:[
+    {text:"Infrastructure", economy:+5, public:+3, liquidity:-3},
+    {text:"Digital Banking", economy:+3, bank:+5, liquidity:-2},
+    {text:"Education", economy:+4, public:+5, liquidity:-4}
+  ]}
+];
+
+// Function to trigger mini-game
+function startMiniGame(){
+  if(currentMiniGame) return; // only one at a time
+  const evt = miniEvents[Math.floor(Math.random()*miniEvents.length)];
+  const eventArea = document.getElementById("eventArea");
+  const btnArea = document.getElementById("buttonsArea");
+  btnArea.innerHTML="";
+  eventArea.textContent = evt.text;
+
+  switch(evt.type){
+    case "dragDrop":
+      eventArea.innerHTML = evt.text + `<br><br>`;
+      for(let i=1;i<=evt.totalLiquidity;i++){
+        const coin = document.createElement("div");
+        coin.textContent="💰";
+        coin.style.display="inline-block";
+        coin.style.fontSize="24px";
+        coin.style.margin="2px";
+        coin.style.cursor="pointer";
+        coin.draggable=true;
+        coin.addEventListener("dragstart",(e)=>{ e.dataTransfer.setData("text","1"); });
+        eventArea.appendChild(coin);
+      }
+      const bankDrop = document.createElement("div");
+      bankDrop.textContent="🏦 Drop here";
+      bankDrop.style.width="150px";
+      bankDrop.style.height="50px";
+      bankDrop.style.border="2px dashed #fff";
+      bankDrop.style.marginTop="10px";
+      bankDrop.style.textAlign="center";
+      bankDrop.addEventListener("dragover",(e)=>e.preventDefault());
+      bankDrop.addEventListener("drop",(e)=>{
+        e.preventDefault();
+        const val = parseInt(e.dataTransfer.getData("text"));
+        liquidity = Math.max(Math.min(liquidity+val*5,100),0);
+        updateStats();
+        document.getElementById("messageArea").textContent="Liquidity successfully allocated!";
+        currentMiniGame = null;
+        setTimeout(nextEvent,800);
+      });
+      eventArea.appendChild(bankDrop);
+      currentMiniGame = evt.type;
+      break;
+
+    case "slider":
+      const slider = document.createElement("input");
+      slider.type="range";
+      slider.min=evt.min;
+      slider.max=evt.max;
+      slider.value=5;
+      slider.style.width="80%";
+      btnArea.appendChild(slider);
+      const submitBtn = document.createElement("button");
+      submitBtn.textContent="Set Rate";
+      submitBtn.onclick=()=>{
+        inflation = Math.min(Math.max(slider.value*1.2,0),20);
+        document.getElementById("messageArea").textContent=`Interest rate set! Inflation adjusted to ${inflation}%`;
+        updateStats();
+        currentMiniGame=null;
+        setTimeout(nextEvent,800);
+      };
+      btnArea.appendChild(submitBtn);
+      currentMiniGame = evt.type;
+      break;
+
+    case "buttons":
+      evt.options.forEach(opt=>{
+        const btn = document.createElement("button");
+        btn.textContent=opt.text;
+        btn.onclick=()=>{
+          economy = Math.min(Math.max(economy+(opt.economy||0),0),100);
+          publicHappiness = Math.min(Math.max(publicHappiness+(opt.public||0),0),100);
+          liquidity = Math.min(Math.max(liquidity+(opt.liquidity||0),0),100);
+          document.getElementById("messageArea").textContent=`Project funded: ${opt.text}`;
+          updateStats();
+          currentMiniGame=null;
+          setTimeout(nextEvent,800);
+        };
+        btnArea.appendChild(btn);
+      });
+      currentMiniGame = evt.type;
+      break;
+  }
+}
+
+// 30% chance to trigger mini-game on nextEvent
+const originalNextEvent = nextEvent;
+nextEvent = function(){
+  if(Math.random()<0.3){
+    startMiniGame();
+  } else {
+    originalNextEvent();
+  }
+}
+</script>
+
+<!-- SECTION 4: Graph Animations & Month Progression -->
+<script>
+// Month display
+const monthDisplay = document.createElement("div");
+monthDisplay.style.textAlign="center";
+monthDisplay.style.marginBottom="10px";
+monthDisplay.style.fontWeight="bold";
+monthDisplay.style.fontSize="16px";
+document.querySelector(".container").insertBefore(monthDisplay, document.getElementById("eventArea"));
+
+// Update month display
+function updateMonth(){
+  monthDisplay.textContent = `Month: ${month} / 12`;
+}
+
+// Enhanced graph animation
+function updateGraph(){
+  const graphArea = document.getElementById("graphArea");
+  graphArea.innerHTML = `
+    <div class="graphBar economyBar" style="width:${economy}%; transition: width 0.6s;">Economy: ${economy}</div>
+    <div class="graphBar bankBar" style="width:${bank}%; transition: width 0.6s;">Bank Health: ${bank}</div>
+    <div class="graphBar publicBar" style="width:${publicHappiness}%; transition: width 0.6s;">Public Happiness: ${publicHappiness}</div>
+    <div class="graphBar inflationBar" style="width:${inflation*5}%; transition: width 0.6s;">Inflation: ${inflation}%</div>
+    <div class="graphBar liquidityBar" style="width:${liquidity}%; transition: width 0.6s;">Liquidity: ${liquidity}</div>
+  `;
+}
+
+// Event fade animation
+const eventArea = document.getElementById("eventArea");
+const buttonsArea = document.getElementById("buttonsArea");
+function fadeEvent(text, buttons){
+  eventArea.style.opacity=0;
+  buttonsArea.style.opacity=0;
+  setTimeout(()=>{
+    eventArea.textContent=text;
+    buttonsArea.innerHTML=buttons||"";
+    eventArea.style.opacity=1;
+    buttonsArea.style.opacity=1;
+  },200);
+}
+
+// Override nextEvent for fade effect
+const oldNextEvent = nextEvent;
+nextEvent=function(){
+  updateMonth();
+  oldNextEvent();
+}
+
+// Override applyOption to include fade and month update
+const oldApplyOption = applyOption;
+applyOption=function(opt){
+  oldApplyOption(opt);
+  updateMonth();
+}
+
+// RestartGame also updates month display
+const oldRestart = restartGame;
+restartGame=function(){
+  oldRestart();
+  updateMonth();
+}
+</script>
+
+<!-- SECTION 5: Footer, Hari Diss, Restart, Easter Eggs -->
+<script>
+
+// Game Over enhancement
+function gameOver(){
+  document.getElementById("eventArea").textContent="You're a great governer";
+  document.getElementById("buttonsArea").innerHTML=`<button onclick="restartGame()">Restart Game</button>`;
+  document.getElementById("timer").textContent="";
+  document.getElementById("messageArea").textContent="Well played!";
+  // Easter egg: if all stats > 80, special message
+  if(economy>60 && bank>60 && publicHappiness>60){
+    document.getElementById("messageArea").textContent=" Legendary Governor! You win! Good Game";
+  }
+
+  if(economy<50 && bank<50 && publicHappiness<50){
+    document.getElementById("messageArea").textContent="You are not fit be an RBI Governor🥲";
+  }
+}
+
+// Restart game enhancement
+function restartGame(){
+  economy=50; bank=50; publicHappiness=50; inflation=5; liquidity=50; month=1;
+  document.getElementById("messageArea").textContent="Don't click";
+  rapVisible=false;
+  hariRap.style.maxHeight="0px";
+  hariRap.style.opacity=0;
+  hariRap.style.display="none";
+  dontBtn.textContent="Don't click";
+  updateStats();
+  nextEvent();
+}
+
+// Optional Easter egg: click the title rapidly
+const title = document.querySelector("h1");
+let clickCount=0;
+title.addEventListener("click",()=>{
+  clickCount++;
+  if(clickCount>=10){
+    document.getElementById("messageArea").textContent="💥 Secret RBI Hack Activated!SQUIRREL BOUTA DANCE ON ALL FOURS💥";
+    clickCount=0;
+  }
+});
+</script>
+
+</body>
+</html>
+
